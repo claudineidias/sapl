@@ -181,6 +181,27 @@ def garante_tabela_no_legado(create_table):
         assert existe_tabela_no_legado(tabela)
 
 
+def arruma_tip_origem_externa():
+    SQL_SELECT_TIPO_MATERIA = '''
+        select tip_materia
+        from tipo_materia_legislativa;
+    '''
+
+    SQL_UPDATE_MATERIA = '''
+        update materia_legislativa
+        set tip_origem_externa = NULL
+        where tip_origem_externa not in {};
+    '''
+
+    cursor = exec_legado(SQL_SELECT_TIPO_MATERIA)
+
+    tipo_materia = [r[0] for r in cursor if r[0]]
+
+    if tipo_materia:
+        tipo_materia = str(tipo_materia).replace('[', '(').replace(']', ')')
+        cursor = exec_legado(SQL_UPDATE_MATERIA.format(tipo_materia))
+
+
 def uniformiza_banco():
     exec_legado('''
       SELECT replace(@@sql_mode,"STRICT_TRANS_TABLES,","ALLOW_INVALID_DATES");
@@ -260,6 +281,8 @@ relatoria             | tip_fim_relatoria = NULL    | tip_fim_relatoria = 0
     for spec in update_specs:
         spec = spec.split('|')
         exec_legado('UPDATE {} SET {} WHERE {}'.format(*spec))
+
+    arruma_tip_origem_externa()
 
 
 def iter_sql_records(sql, db):
